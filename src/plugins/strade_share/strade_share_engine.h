@@ -10,7 +10,9 @@
 #include "strade_share_db.h"
 
 #include "logic/strade_basic_info.h"
-#include "tools/map_util.h"
+#include "logic/observer.h"
+#include "logic/subject.h"
+#include "logic/comm_head.h"
 
 #include <vector>
 
@@ -32,6 +34,10 @@ class SSEngine {
  public:
   virtual bool Init() = 0;
 
+  // 注册观察者
+  virtual void AttachObserver(
+      strade_logic::Observer* observer) = 0;
+
   // 更新实时行情数据
   virtual void UpdateStockRealMarketData(
       REAL_MARKET_DATA_VEC& stocks_market_data) = 0;
@@ -50,59 +56,73 @@ class SSEngine {
       const std::string& stock_code,
       STOCK_HIST_DATA_VEC& stock_vec) = 0;
 
-  // 获取所有股票接口 只读
-  virtual const STOCKS_MAP& GetAllStockTotalMap() = 0;
+  virtual STOCKS_MAP GetAllStockTotalMapCopy() = 0;
 
-  // 获取某只股票所有历史数据 只读
-  virtual const STOCK_HIST_MAP& GetStockHistMap(
+  virtual STOCK_HIST_MAP GetStockHistMapByCodeCopy(
       const std::string& stock_code) = 0;
 
-  // 获取某只股票所有实时数据 只读
-  virtual const STOCK_REAL_MAP& GetStockRealInfoMap(
-      const std::string& stock_code) = 0;
-
-  virtual STOCKS_MAP& GetAllStockTotalMapNonConst() = 0;
-
-  virtual STOCK_HIST_MAP& GetStockHistMapByCodeNonConst(
-      const std::string& stock_code) = 0;
-
-  virtual STOCK_REAL_MAP& GetStockRealInfoMapNonConst(
+  virtual STOCK_REAL_MAP GetStockRealInfoMapCopy(
       const std::string& stock_code) = 0;
 
   // 获取某只股票所有数据
   virtual bool GetStockTotalInfoByCode(
       const std::string& stock_code,
-      strade_logic::StockTotalInfo* stock_total_info) = 0;
+      strade_logic::StockTotalInfo& stock_total_info) = 0;
 
   // 获取某只股票，某个历史日期数据
   virtual bool GetStockHistInfoByDate(
       const std::string& stock_code,
       const std::string& date,
-      strade_logic::StockHistInfo* stock_hist_info) = 0;
+      strade_logic::StockHistInfo& stock_hist_info) = 0;
 
   // 获取某只股票，当天某个交易时间的实时数据
   virtual bool GetStockRealMarketDataByTime(
       const std::string& stock_code,
       const time_t& time,
-      strade_logic::StockRealInfo* stock_real_info) = 0;
+      strade_logic::StockRealInfo& stock_real_info) = 0;
+
+  // 获取某只股票当前最新的实时数据
+  virtual bool GetStockCurrRealMarketInfo(
+      const std::string& stock_code,
+      strade_logic::StockRealInfo& stock_real_info) = 0;
+
+  // 获取mysql结果集对象， T 类型必须继承自 pub/dao/AbstractDao 类
+  template<typename T>
+  bool ReadData(const std::string& sql,
+                std::vector<T>& result) {
+    return false;
+  }
+
+  // 获取mysql 结果集， 用于自定义 MYSQL_ROW 的转化
+  virtual bool ReadDataRows(
+      const std::string& sql, std::vector<MYSQL_ROW>& rows_vec) = 0;
+
+  // 更新数据
+  virtual bool WriteData(const std::string& sql) = 0;
+
+  // 执行存储过程
+  virtual bool ExcuteStorage(
+      const std::string& sql, std::vector<MYSQL_ROW>& rows_vec) = 0;
+
 };
 
 struct StradeShareCache {
   STOCKS_MAP stocks_map_;
 };
 
-class SSEngineImpl : public SSEngine {
+class SSEngineImpl : public SSEngine, public strade_logic::Subject {
  public:
   SSEngineImpl();
-  virtual ~SSEngineImpl() {}
+  virtual ~SSEngineImpl();
 
   static SSEngineImpl* GetInstance();
 
   virtual bool Init();
 
-  void LoadAllStockBasicInfo();
+  virtual void AttachObserver(
+      strade_logic::Observer* observer);
 
-  void OnLoadAllStockBasicInfo(std::list<strade_logic::StockTotalInfo>& list);
+  void LoadAllStockBasicInfo();
 
   virtual void UpdateStockRealMarketData(
       REAL_MARKET_DATA_VEC& stocks_market_data);
@@ -118,35 +138,31 @@ class SSEngineImpl : public SSEngine {
       const std::string& stock_code,
       STOCK_HIST_DATA_VEC& stock_vec);
 
-  virtual const STOCKS_MAP& GetAllStockTotalMap();
+  virtual STOCKS_MAP GetAllStockTotalMapCopy();
 
-  virtual const STOCK_HIST_MAP& GetStockHistMap(
+  virtual STOCK_HIST_MAP GetStockHistMapByCodeCopy(
       const std::string& stock_code);
 
-  virtual const STOCK_REAL_MAP& GetStockRealInfoMap(
-      const std::string& stock_code) ;
-
-  virtual STOCKS_MAP& GetAllStockTotalMapNonConst();
-
-  virtual STOCK_HIST_MAP& GetStockHistMapByCodeNonConst(
-      const std::string& stock_code);
-
-  virtual STOCK_REAL_MAP& GetStockRealInfoMapNonConst(
+  virtual STOCK_REAL_MAP GetStockRealInfoMapCopy(
       const std::string& stock_code);
 
   virtual bool GetStockTotalInfoByCode(
       const std::string& stock_code,
-      strade_logic::StockTotalInfo* stock_total_info);
+      strade_logic::StockTotalInfo& stock_total_info);
 
   virtual bool GetStockHistInfoByDate(
       const std::string& stock_code,
       const std::string& date,
-      strade_logic::StockHistInfo* stock_hist_info);
+      strade_logic::StockHistInfo& stock_hist_info);
 
   virtual bool GetStockRealMarketDataByTime(
       const std::string& stock_code,
       const time_t& time,
-      strade_logic::StockRealInfo* stock_real_info);
+      strade_logic::StockRealInfo& stock_real_info);
+
+  virtual bool GetStockCurrRealMarketInfo(
+      const std::string& stock_code,
+      strade_logic::StockRealInfo& stock_real_info);
 
  public:
   bool AddStockTotalInfoNonblock(
@@ -155,16 +171,32 @@ class SSEngineImpl : public SSEngine {
   bool AddStockTotalInfoBlock(
       const strade_logic::StockTotalInfo& stock_total_info);
 
+  template<typename T>
+  bool ReadData(const std::string& sql,
+                std::vector<T>& result) {
+    base_logic::WLockGd lk(lock_);
+    return mysql_engine_->ReadData<T>(sql, result);
+  }
+
+  virtual bool ReadDataRows(
+      const std::string& sql, std::vector<MYSQL_ROW>& rows_vec);
+
+  virtual bool WriteData(const std::string& sql);
+
+  virtual bool ExcuteStorage(const std::string& sql, std::vector<MYSQL_ROW>& rows_vec);
+
  private:
   bool GetStockTotalNonBlock(const std::string stock_code,
-                             strade_logic::StockTotalInfo** stock_total_info) {
+                             strade_logic::StockTotalInfo& stock_total_info) {
     STOCKS_MAP::iterator iter(share_cache_.stocks_map_.find(stock_code));
-    if(iter != share_cache_.stocks_map_.end()) {
-      *stock_total_info = &(iter->second);
+    if (iter != share_cache_.stocks_map_.end()) {
+      stock_total_info = iter->second;
       return true;
     }
     return false;
   }
+
+  bool InitParam();
 
  private:
   threadrw_t* lock_;

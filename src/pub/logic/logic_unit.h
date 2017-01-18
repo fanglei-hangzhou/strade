@@ -21,7 +21,6 @@ class SomeUtils {
  public:
   static void* GetLibraryFunction(const std::string& library_name,
                                   const std::string& func_name);
-
 };
 
 class LogicUnit {

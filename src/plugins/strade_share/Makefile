@@ -91,8 +91,8 @@ strade_share_db.o :  ./strade_share_db.cc ./strade_share_db.h
 data_engine.o : $(USER_DIR)/storage/data_engine.cc $(USER_DIR)/storage/data_engine.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/storage/data_engine.cc $(INCLUDE_PATHS)
 
-mysql_thread_pool.o : $(USER_DIR)/storage/mysql_thread_pool.cc $(USER_DIR)/storage/mysql_thread_pool.h
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/storage/mysql_thread_pool.cc $(INCLUDE_PATHS)
+mysql_engine.o : $(USER_DIR)/storage/mysql_engine.cc $(USER_DIR)/storage/mysql_engine.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/storage/mysql_engine.cc $(INCLUDE_PATHS)
 
 basictypes.o: $(THIRD_PATH)/basic/basictypes.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(THIRD_PATH)/basic/basictypes.cc $(INCLUDE_PATHS)
@@ -103,7 +103,17 @@ config.o: $(THIRD_PATH)/config/config.cc
 strade_basic_info.o : $(USER_DIR)/logic/strade_basic_info.cc $(USER_DIR)/logic/strade_basic_info.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/logic/strade_basic_info.cc $(INCLUDE_PATHS)
 
-$(PLUGIN) : basictypes.o config.o data_engine.o strade_share_engine.o strade_share_db.o strade_basic_info.o mysql_thread_pool.o\
+observer.o : $(USER_DIR)/logic/observer.cc $(USER_DIR)/logic/observer.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/logic/observer.cc $(INCLUDE_PATHS)
+
+subject.o : $(USER_DIR)/logic/subject.cc $(USER_DIR)/logic/subject.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/logic/subject.cc $(INCLUDE_PATHS)
+
+abstract_dao.o : $(USER_DIR)/dao/abstract_dao.cc $(USER_DIR)/dao/abstract_dao.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/dao/abstract_dao.cc $(INCLUDE_PATHS)
+
+$(PLUGIN) : basictypes.o config.o data_engine.o strade_share_engine.o strade_share_db.o strade_basic_info.o mysql_engine.o\
+	observer.o subject.o abstract_dao.o\
 	$(CUSTOM_THIRD_PATH)/dmg_fp/lib/dmg_fp.a $(LIB_DIR)/base/lib/mybase.a $(LIB_DIR)/third_party/lib/libhiredis.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS)  -lpthread -lexpat -lrt -ldl -lmysqlclient \
 	$^  -o $@ -lexpat -lmysqlclient

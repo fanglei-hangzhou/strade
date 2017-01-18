@@ -7,11 +7,11 @@
 
 void TestShareLogic::Init() {
   strade_share::SSEngine* (* ss_engine)(void);
-  std::string back_share_library = "./strade_share/strade_share.so";
-  std::string back_share_func = "GetStradeShareEngine";
+  std::string strade_share_library = "./strade_share/strade_share.so";
+  std::string strade_share_func = "GetStradeShareEngine";
   ss_engine = (strade_share::SSEngine* (*)(void))
       base_logic::SomeUtils::GetLibraryFunction(
-          back_share_library, back_share_func);
+          strade_share_library, strade_share_func);
   ssEngine_ = (*ss_engine)();
   if (ssEngine_ == NULL)
     assert(0);

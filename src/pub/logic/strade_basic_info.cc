@@ -3,6 +3,7 @@
 //
 
 #include "strade_basic_info.h"
+#include "logic_unit.h"
 
 namespace strade_logic {
 
@@ -37,17 +38,6 @@ StockRealInfo::~StockRealInfo() {
   }
 }
 
-void StockRealInfo::Deserialize(base_logic::DictionaryValue& dict) {
-  dict.GetReal(L"changepercent", &data_->change_percent_);
-  dict.GetReal(L"trade", &data_->trade_);
-  dict.GetReal(L"open", &data_->open_);
-  dict.GetReal(L"high", &data_->high_);
-  dict.GetReal(L"low", &data_->low_);
-  dict.GetReal(L"settlement", &data_->settlement_);
-  dict.GetBigInteger(L"time", &data_->trade_time_);
-  dict.GetReal(L"volume", &data_->volume_);
-}
-
 StockHistInfo::StockHistInfo() {
   data_ = new Data();
 }
@@ -79,60 +69,28 @@ StockHistInfo::~StockHistInfo() {
   }
 }
 
-void StockHistInfo::Deserialize(base_logic::DictionaryValue& dict) {
+void StockHistInfo::Deserialize() {
   double qfq_close = 0.0;
-  dict.GetString(L"date", &data_->date_);
-  dict.GetReal(L"open", &data_->open_);
-  dict.GetReal(L"high", &data_->high_);
-  dict.GetReal(L"close", &data_->close_);
-  dict.GetReal(L"low", &data_->low_);
-  dict.GetReal(L"qfq_close", &qfq_close);
+
+  GetString(0, data_->date_);
+  GetReal(1, data_->open_);
+  GetReal(data_->high_);
+  GetReal(3, data_->close_);
+  GetReal(4, data_->low_);
+  GetReal(5, qfq_close);
+
   if (qfq_close > 1) {
     data_->qfq_close_ = qfq_close;
   } else {
     data_->qfq_close_ = data_->close_;
   }
   data_->mid_price_ = (data_->high_ + data_->low_ + data_->close_) / 3;
-}
 
-StockBasicInfo::StockBasicInfo() {
-  data_ = new Data();
-}
-
-StockBasicInfo::StockBasicInfo(const StockBasicInfo& rhs)
-    : data_(rhs.data_) {
-  if (NULL != data_) {
-    data_->AddRef();
-  }
-}
-
-StockBasicInfo& StockBasicInfo::operator=(const StockBasicInfo& rhs) {
-  if (this == &rhs) {
-    return (*this);
-  }
-  if (NULL != rhs.data_) {
-    rhs.data_->AddRef();
-  }
-  if (NULL == data_) {
-    data_->Release();
-  }
-  data_ = rhs.data_;
-  return (*this);
-}
-
-StockBasicInfo::~StockBasicInfo() {
-  if (NULL != data_) {
-    data_->Release();
-  }
-}
-
-void StockBasicInfo::Deserialize(base_logic::DictionaryValue& dict) {
-  dict.GetString(L"code", &data_->code_);
-  dict.GetString(L"name", &data_->name_);
-  dict.GetReal(L"totalAssets", &data_->outstanding_);
-  dict.GetReal(L"bvps", &data_->bvps_);
-  dict.GetReal(L"pb", &data_->pb_);
-  data_->market_value_ = data_->outstanding_ * data_->bvps_ * data_->pb_;
+//  LOG_DEBUG2("date=%s, open=%.2f, high=%.2f, close=%.2f",
+//             data_->date_.c_str(),
+//             data_->open_,
+//             data_->high_,
+//             data_->close_);
 }
 
 StockTotalInfo::StockTotalInfo() {
@@ -166,22 +124,24 @@ StockTotalInfo::~StockTotalInfo() {
   }
 }
 
-void StockTotalInfo::DeserializeStockBasicInfo(
-    base_logic::DictionaryValue& dict) {
-  dict.GetString(L"code", &data_->code_);
-  data_->stock_basic_info_.Deserialize(dict);
-  LOG_DEBUG2("load stock_code=%s", data_->code_.c_str());
+void StockTotalInfo::Deserialize() {
+  GetString(0, data_->code_);
+  GetString(1, data_->name_);
+  GetReal(2, data_->outstanding_);
+  GetReal(3, data_->bvps_);
+  GetReal(4, data_->pb_);
+  data_->market_value_ = data_->outstanding_ * data_->bvps_ * data_->pb_;
 }
 
 void StockTotalInfo::ClearRealMap() {
   data_->stock_real_map_.clear();
 }
 
-const STOCK_HIST_MAP& StockTotalInfo::GetStockHistMap() const {
+STOCK_HIST_MAP StockTotalInfo::GetStockHistMap() const {
   return data_->stock_hist_map_;
 }
 
-const STOCK_REAL_MAP& StockTotalInfo::GetStockRealMap() const {
+STOCK_REAL_MAP StockTotalInfo::GetStockRealMap() const {
   return data_->stock_real_map_;
 }
 
@@ -208,10 +168,10 @@ bool StockTotalInfo::AddStockHistVec(
 }
 
 bool StockTotalInfo::GetStockHistInfoByDate(
-    const std::string& date, StockHistInfo** stock_hist_info) {
+    const std::string& date, StockHistInfo& stock_hist_info) {
   STOCK_HIST_MAP::iterator iter(data_->stock_hist_map_.find(date));
   if (iter != data_->stock_hist_map_.end()) {
-    *stock_hist_info = &(iter->second);
+    stock_hist_info = iter->second;
     return true;
   }
   return false;
@@ -234,10 +194,10 @@ bool StockTotalInfo::AddStockRealInfoByTime(
 }
 
 bool StockTotalInfo::GetStockRealInfoByTradeTime(
-    const time_t trade_time, StockRealInfo** stock_real_info) {
+    const time_t trade_time, StockRealInfo& stock_real_info) {
   STOCK_REAL_MAP::iterator iter(data_->stock_real_map_.find(trade_time));
   if (iter != data_->stock_real_map_.end()) {
-    *stock_real_info = &(iter->second);
+    stock_real_info = iter->second;
     return true;
   }
   return false;
@@ -246,6 +206,16 @@ bool StockTotalInfo::GetStockRealInfoByTradeTime(
 bool StockTotalInfo::ReplaceStockRealInfo(
     const time_t trade_time, const StockRealInfo& stock_real_info) {
   data_->stock_real_map_[trade_time] = stock_real_info;
+  return true;
+}
+
+bool StockTotalInfo::GetCurrRealMarketInfo(StockRealInfo& stock_real_info) {
+  if (data_->stock_real_map_.empty()) {
+    return false;
+  }
+  STOCK_REAL_MAP::reverse_iterator iter(
+      data_->stock_real_map_.rbegin());
+  stock_real_info = iter->second;
   return true;
 }
 

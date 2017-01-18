@@ -7,8 +7,7 @@
 
 #include "logic/base_values.h"
 #include "logic/logic_comm.h"
-#include "tools/map_util.h"
-#include "storage/mysql_thread_pool.h"
+#include "storage/mysql_engine.h"
 
 namespace strade_logic {
 
@@ -25,8 +24,6 @@ class StockRealInfo {
   StockRealInfo(const StockRealInfo& rhs);
   StockRealInfo& operator=(const StockRealInfo& rhs);
   ~StockRealInfo();
-
-  void Deserialize(base_logic::DictionaryValue& dict);
 
   time_t GetTradeTime() const {
     return data_->trade_time_;
@@ -55,7 +52,7 @@ class StockRealInfo {
 
    public:
     std::string stock_code_;
-    time_t trade_time_;
+    int32 trade_time_;
     double change_percent_;
     double trade_;
     double open_;
@@ -79,18 +76,20 @@ class StockRealInfo {
 };
 
 // 历史数据
-class StockHistInfo {
+class StockHistInfo : public base_logic::AbstractDao{
  public:
   StockHistInfo();
   StockHistInfo(const StockHistInfo& rhs);
   StockHistInfo& operator=(const StockHistInfo& rhs);
   ~StockHistInfo();
 
-  void Deserialize(base_logic::DictionaryValue& dict);
-
   const std::string& GetHistDate() const {
     return data_->date_;
   }
+
+ private:
+  virtual void Deserialize();
+
  private:
   class Data {
    public:
@@ -133,15 +132,48 @@ class StockHistInfo {
   Data* data_;
 };
 
-// 基本数据
-class StockBasicInfo {
+class StockTotalInfo : public base_logic::AbstractDao {
  public:
-  StockBasicInfo();
-  StockBasicInfo(const StockBasicInfo& rhs);
-  StockBasicInfo& operator=(const StockBasicInfo& rhs);
-  ~StockBasicInfo();
+  StockTotalInfo();
+  StockTotalInfo(const StockTotalInfo& rhs);
+  StockTotalInfo& operator=(const StockTotalInfo& rhs);
+  ~StockTotalInfo();
 
-  void Deserialize(base_logic::DictionaryValue& dict);
+  void ClearRealMap();
+
+  STOCK_HIST_MAP GetStockHistMap() const;
+
+  STOCK_REAL_MAP GetStockRealMap() const;
+
+  bool AddStockHistInfoByDate(
+      const std::string& date, const StockHistInfo& stock_hist_info);
+
+  bool AddStockHistVec(std::vector<StockHistInfo>& stock_hist_vec);
+
+  bool GetStockHistInfoByDate(
+      const std::string& date, StockHistInfo& stock_hist_info);
+
+  bool ReplaceStockHistInfo(
+      const std::string& date, const StockHistInfo& stock_hist_info);
+
+  bool AddStockRealInfoByTime(
+      const time_t trade_time, const StockRealInfo& stock_real_info);
+
+  bool GetStockRealInfoByTradeTime(
+      const time_t trade_time, StockRealInfo& stock_real_info);
+
+  bool ReplaceStockRealInfo(
+      const time_t trade_time, const StockRealInfo& stock_real_info);
+
+  bool GetCurrRealMarketInfo(StockRealInfo& stock_real_info);
+
+ public:
+  const std::string& GetStockCode() const {
+    return data_->code_;
+  }
+
+ private:
+  virtual void Deserialize();
 
  private:
   class Data {
@@ -149,8 +181,8 @@ class StockBasicInfo {
     Data()
         : code_(""),
           refcount_(1) {
-
     }
+
     void AddRef() {
       __sync_fetch_and_add(&refcount_, 1);
     }
@@ -187,75 +219,6 @@ class StockBasicInfo {
     double turnoverratio_;                                //换手率
     double current_trade_;                                //股价
 
-   private:
-    int refcount_;
-  };
-
- private:
-  Data* data_;
-};
-
-class StockTotalInfo {
- public:
-  StockTotalInfo();
-  StockTotalInfo(const StockTotalInfo& rhs);
-  StockTotalInfo& operator=(const StockTotalInfo& rhs);
-  ~StockTotalInfo();
-
-  void DeserializeStockBasicInfo(
-      base_logic::DictionaryValue& dict);
-
-  void ClearRealMap();
-
-  const STOCK_HIST_MAP& GetStockHistMap() const;
-
-  const STOCK_REAL_MAP& GetStockRealMap() const;
-
-  bool AddStockHistInfoByDate(
-      const std::string& date, const StockHistInfo& stock_hist_info);
-
-  bool AddStockHistVec(std::vector<StockHistInfo>& stock_hist_vec);
-
-  bool GetStockHistInfoByDate(
-      const std::string& date, StockHistInfo** stock_hist_info);
-
-  bool ReplaceStockHistInfo(
-      const std::string& date, const StockHistInfo& stock_hist_info);
-
-  bool AddStockRealInfoByTime(
-      const time_t trade_time, const StockRealInfo& stock_real_info);
-
-  bool GetStockRealInfoByTradeTime(
-      const time_t trade_time, StockRealInfo** stock_real_info);
-
-  bool ReplaceStockRealInfo(
-      const time_t trade_time, const StockRealInfo& stock_real_info);
-
- public:
-  const std::string& GetStockCode() const {
-    return data_->code_;
-  }
-
- private:
-  class Data {
-   public:
-    Data()
-        : code_(""),
-          refcount_(1) {
-    }
-
-    void AddRef() {
-      __sync_fetch_and_add(&refcount_, 1);
-    }
-    void Release() {
-      __sync_fetch_and_sub(&refcount_, 1);
-      if (!refcount_)
-        delete this;
-    }
-
-   public:
-    std::string code_;
-    StockBasicInfo stock_basic_info_;
     STOCK_HIST_MAP stock_hist_map_;
     STOCK_REAL_MAP stock_real_map_;
 
