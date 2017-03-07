@@ -30,8 +30,12 @@ void Subject::Detach(Observer* observer) {
 
 void Subject::Notify(int opcode) {
   std::list<Observer*>::iterator iter = this->m_lst.begin();
-  for (; iter != m_lst.end(); iter++) {
-    (*iter)->Update(opcode);
+  for (; iter != m_lst.end(); ) {
+    if ((*iter)->stale()) {
+      m_lst.erase(iter++);
+      continue;
+    }
+    (*iter++)->Update(opcode);
   }
 }
 

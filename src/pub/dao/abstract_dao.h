@@ -24,6 +24,7 @@ class AbstractDao {
 
  protected:
   bool GetInteger(int32 index, int32& out);
+  bool GetInteger(int32 index, uint32& out);
   bool GetInteger(int32& out);
 
   bool GetReal(int32 index, double& value);

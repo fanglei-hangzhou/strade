@@ -39,6 +39,14 @@ class CandleStickLogic {
   bool OnSingleStockRecords(struct server *srv, const int socket,
                             NetBase* netbase, const void* msg, const int len);
   bool GetStockData(const strade_share::STOCK_HIST_MAP &share_map, STOCK_HISTORY_MAP *history_map);
+
+  bool CheckMonthBegin(std::string date);
+
+  bool CheckWeekBegin(std::string date);
+  
+  void MonthBeginData(STOCK_HISTORY_MAP *history_map);
+  
+  void WeekBeginData(STOCK_HISTORY_MAP *history_map);
 };
 
 }  // namespace candlestock

@@ -21,9 +21,10 @@ class Subject {
 
   virtual void Notify(int opcode);
   virtual void Attach(Observer*);
-  virtual void Detach(Observer*);
 
   std::list<Observer*> m_lst;
+ private:
+  virtual void Detach(Observer*);
 };
 
 } /* namespace strade_logic */

@@ -4,34 +4,92 @@
 #ifndef SRC_PUB_LOGIC_USER_INFO_H_
 #define SRC_PUB_LOGIC_USER_INFO_H_
 
+#include <vector>
+#include <map>
+
 #include "macros.h"
 #include "user_defined_types.h"
 #include "stock_group.h"
 #include "order_filter.h"
 #include "order_info.h"
 #include "stock_position.h"
+#include "message.h"
+#include "thread/base_thread_lock.h"
+#include "dao/abstract_dao.h"
+
+namespace strade_share {
+class SSEngine;
+}
 
 namespace strade_user {
 
-class UserInfo {
+using strade_share::SSEngine;
+
+class UserInfo;
+typedef std::vector<UserInfo> UserList;
+typedef std::map<UserId, UserInfo> UserIdMap;
+
+class UserInfo : public base_logic::AbstractDao {
+ public:
+  static const char kGetAllUserInfoSql[];
+  enum {
+    ID,
+    NAME,
+    PASSWORD,
+    PLATFORM_ID,
+    USER_LEVEL,
+    EMAIL,
+    PHONE,
+    AVAILABLE_CAPITAL,
+    FROZEN_CAPITAL
+  };
+  static SSEngine* engine_;
  public:
   UserInfo();
   REFCOUNT_DECLARE(UserInfo);
  public:
-  GroupId CreateGroup(const std::string& name,
-                      const StockCodeList& code_list);
-  StockGroup* GetGroup(GroupId group_id);
-  GroupStockPosition* GetGroupStockPosition(GroupId group_id, const std::string& code);
+  bool Init();
+  Status::State CreateGroup(const std::string& name,
+                      StockCodeList& code_list,
+                      GroupId* id);
 
-  bool AddStock(GroupId group_id, StockCodeList& code_list);
-  bool DelStock(GroupId group_id, StockCodeList& code_list);
+  StockGroup* GetGroup(GroupId group_id);
+
+  // not include default group
+  GroupStockPositionList GetAllGroupStockPosition();
+  GroupStockPosition* GetGroupStockPosition(GroupId group_id, const std::string& code);
+  GroupStockPositionList GetGroupStockPosition(GroupId group_id);
+  Status::State AddStock(GroupId group_id, StockCodeList& code_list);
+  Status::State DelStock(GroupId group_id, StockCodeList& code_list);
   StockGroupList GetAllGroups() const { return data_->stock_group_list_; }
-  bool GetGroupStock(GroupId group_id, StockCodeList& stocks);
+  Status::State GetGroupStock(GroupId group_id, StockCodeList& stocks);
+  // include default gruop
   GroupStockPositionList GetHoldingStocks();
 
   OrderList FindOrders(const OrderFilterList& filters);
-  bool SubmitOrder(SubmitOrderReq& req);
-
+  SubmitOrderRes SubmitOrder(SubmitOrderReq& req);
+  void OnOrderDone(OrderInfo* order);
+  Status::State OnCancelOrder(OrderId order_id);
+  Status::State OnModifyInitCapital(GroupId group_id, double capital);
+  void OnCloseMarket();
+ private:
+  Status::State CancleOrder(OrderInfo* order);
+  StockGroup* GetGroupWithNonLock(GroupId group_id);
+  GroupStockPosition* GetGroupStockPositionWithNonLock(GroupId group_id,
+                                                       const std::string& code);
+  void Deserialize();
+  bool InitStockGroup();
+  bool InitStockPosition();
+  bool InitOrder();
+  bool InitPendingOrder();
+  bool InitFinishedOrder();
+  void BindOrder();
+  Status::State OnBuyOrder(SubmitOrderReq& req, double* frozen);
+  Status::State OnSellOrder(SubmitOrderReq& req);
+  bool OnBuyOrderDone(OrderInfo* order);
+  bool OnSellOrderDone(OrderInfo* order);
+  Status::State OnCancelBuyOrder(const OrderInfo* order);
+  Status::State OnCancelSellOrder(const OrderInfo* order);
  public:
   UserId id() const { return data_->id_; }
   void set_id(UserId id) { data_->id_ = id; }
@@ -42,34 +100,41 @@ class UserInfo {
   std::string phone() const { return data_->phone_; }
   void set_phone(const std::string& phone) { data_->phone_ = phone; }
 
-  double total_assets() const { return data_->total_assets_; }
-  void set_total_assets(double assets) { data_->total_assets_ = assets; }
-
-  double available_capital() const { return data_->available_capital_; }
-  void set_available_capital(double available_capital) { data_->available_capital_ = available_capital; }
-
+  bool initialized() const { return data_->initialized_; }
  private:
   class Data {
    public:
     Data()
         : refcount_(1),
           id_(0),
-          total_assets_(0.0),
-          available_capital_(0.0) {
+//          default_gid_(INVALID_GROUPID),
+          platform_id_(-1),
+          level_(-1),
+          lock_(NULL),
+          initialized_(false) {
+      InitThreadrw(&lock_);
     }
 
+    ~Data() {
+      DeinitThreadrw(lock_);
+    }
    public:
     UserId id_;
+//    GroupId default_gid_;
+    PlatformId platform_id_;
+    UserLevel level_;
     std::string name_;
+    std::string password_;
     std::string phone_;
+    std::string email_;
 
-    double total_assets_;       // 总资产
-    double available_capital_;  // 可用资金
+    bool initialized_;
 
     StockGroupList stock_group_list_;         // 股票组合
     GroupStockPositionList stock_position_list_;   // 当前持仓
     OrderList order_list_;                    // 委托
 
+    threadrw_t *lock_;
     void AddRef() {
       __sync_fetch_and_add(&refcount_, 1);
     }

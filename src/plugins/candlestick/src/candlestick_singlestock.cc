@@ -67,6 +67,8 @@ StockDealCandleStickHistory *SingleStockCandleStickData::GetHistoryDataControl(
 bool SingleStockCandleStickData::GetSingleStockHisData(
     std::string code, StockHistoryType type,
     std::list<SingleStockInfo> *index_data) {
+  if (code.length() == 0)
+    return false;
   StockDealCandleStickHistory *history = GetHistoryDataControl(code, type);
   if (history == NULL || history->IsOutofDate(time(NULL))) {
     printf("The history is %x", history);

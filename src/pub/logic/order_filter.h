@@ -13,13 +13,30 @@ namespace strade_user {
 class OrderInfo;
 class OrderFilter;
 
-typedef std::vector<OrderFilter*> OrderFilterList;
+class OrderFilterList : public std::vector<OrderFilter*> {
+ public:
+  void Clear() {
+    for (size_t i = 0; i < size(); ++i) {
+      delete (*this)[i];
+    }
+    clear();
+  }
+  ~OrderFilterList() {
+    for (size_t i = 0; i < size(); ++i) {
+      delete (*this)[i];
+    }
+  }
+};
 
 class OrderFilter {
  public:
-  OrderFilter() {}
+  OrderFilter(GroupId group_id = 0)
+      : group_id_(group_id) {}
+
   virtual ~OrderFilter() {}
-  virtual bool filter(const OrderInfo& order) { return false; }
+  virtual bool filter(const OrderInfo& order);
+ private:
+  GroupId group_id_;
 };
 
 class OrderOperationFilter : public OrderFilter {
@@ -64,6 +81,18 @@ class OrderDealTimeFilter : public OrderFilter {
  private:
   time_t begin_time_;
   time_t end_time_;
+};
+
+class OrderProfitFilter : public OrderFilter {
+ public:
+  OrderProfitFilter(double min, double max)
+      : min_(min),
+        max_(max) {}
+  ~OrderProfitFilter() {}
+  bool filter(const OrderInfo& order);
+ private:
+  double min_;
+  double max_;
 };
 
 } /* namespace strade_user */

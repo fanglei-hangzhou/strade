@@ -15,7 +15,11 @@ namespace strade_user {
 typedef uint32 UserId;
 typedef uint32 GroupId;
 typedef uint32 StockPositionId;
+typedef uint32 PlatformId;
+typedef uint32 UserLevel;
+typedef uint32 OrderId;
 
+#define INVALID_USERID      ((UserId)-1)
 #define INVALID_GROUPID     ((GroupId)-1)
 
 typedef std::vector<std::string> StockCodeList;
@@ -28,7 +32,8 @@ enum OrderOperation {
 
 enum OrderStatus {
   PENDING,
-  FINISHED
+  FINISHED,
+  CANCEL      // 撤销
 };
 
 template <class T>

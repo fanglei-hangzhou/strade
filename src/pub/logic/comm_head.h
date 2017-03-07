@@ -4,7 +4,7 @@
 
 #ifndef STRADE_COMM_HEAD_H_H
 #define STRADE_COMM_HEAD_H_H
-
+#include "../net/operator_code.h"
 namespace strade_logic {
 
 // 共享数据通知信号
@@ -15,6 +15,7 @@ enum STRADE_SHARE_SIGNAL {
 
 };
 
+#define USER_API  1001
 } /* namespace strade_logic */
 
 #endif //STRADE_COMM_HEAD_H_H

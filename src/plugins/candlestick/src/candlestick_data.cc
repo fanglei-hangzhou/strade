@@ -28,7 +28,7 @@ bool StockCandleStickData::ParseDate(std::string date, StockDate *stock_date) {
   int day = atoi(buf);
   struct tm day_tm;
   memset(&day_tm, 0, sizeof(day_tm));
-  day_tm.tm_yday = myear - 1900;
+  day_tm.tm_year = myear - 1900;
   day_tm.tm_mon = mon - 1;
   day_tm.tm_mday = day;
   mktime(&day_tm);
@@ -38,6 +38,7 @@ bool StockCandleStickData::ParseDate(std::string date, StockDate *stock_date) {
   stock_date->year = myear;
   stock_date->month = mon;
   stock_date->day = day;
+  stock_date->week_day = day_tm.tm_wday;
   printf("%d\n", mon);
   return true;
 }
@@ -45,7 +46,8 @@ bool StockCandleStickData::ParseDate(std::string date, StockDate *stock_date) {
 void StockCandleStickData::GetStockDealInfo(StockDealInfo *deal,
                                             const StockHistoryInfo &info) {
   deal->set_date(info.date_);
-  deal->set_amount(info.amount_);
+  deal->set_early_date(info.date_);
+  deal->set_vol(info.vol_);
 }
 
 }  // namespace candlestick

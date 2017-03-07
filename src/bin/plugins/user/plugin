@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<plugin id="user"
+        name="user"
+        version="1.0.0"
+        provider-name="zjc">
+</plugin>
+

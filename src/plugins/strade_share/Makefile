@@ -21,8 +21,7 @@ CUSTOM_THIRD_PATH = $(LIB_DIR)/third_party
 LINK_PATHS = -L./ -L/usr/local/libmemcached-1.0.7/lib/  -L/usr/local/lib -L/usr/lib64/mysql
 
 # Flags passed to the preprocessor.
-CPPFLAGS += -isystem -shared -fPIC -D_DB_POOL_ -D_DEBUG -DUSR_LOG_MSG -D_DIC_POOL_ -D_REENTRANT -D_GNU_SOURCE -DUSR_LOG_ERROR -DUSR_LOG_MSG -DNET_WORK -DHEAD_SHORT
-#CPPFLAGS += -isystem -shared -fPIC -D_DB_POOL_ -D_DIC_POOL_ -D_REENTRANT -D_GNU_SOURCE -DUSR_LOG_ERROR -DUSR_LOG_MSG -DNET_WORK -DHEAD_SHORT
+CPPFLAGS += -isystem -shared -fPIC -_DB_POOL_ -D_DB_POOL_ -D_DEBUG -DUSR_LOG_MSG -DUSR_LOG_ERROR -DPROCESS_WORK -DKUN_REDIS_POOL -DDEBUG_TEST
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g  -Wextra -pthread -shared -fPIC
@@ -40,6 +39,7 @@ INCLUDE_PATHS = -I/usr/local/libmemcached-1.0.7/include \
 				-I$(USER_DIR)\
 				-I$(CUSTOM_THIRD_PATH)/hiredis\
 				-I$(CUSTOM_THIRD_PATH)\
+				-I$(LIB_DIR)\
 				-I$(LIB_DIR)/base\
 				-I../\
 
@@ -88,9 +88,6 @@ strade_share_engine.o : ./strade_share_engine.cc ./strade_share_engine.h
 strade_share_db.o :  ./strade_share_db.cc ./strade_share_db.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./strade_share_db.cc $(INCLUDE_PATHS)
 
-data_engine.o : $(USER_DIR)/storage/data_engine.cc $(USER_DIR)/storage/data_engine.h
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/storage/data_engine.cc $(INCLUDE_PATHS)
-
 mysql_engine.o : $(USER_DIR)/storage/mysql_engine.cc $(USER_DIR)/storage/mysql_engine.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/storage/mysql_engine.cc $(INCLUDE_PATHS)
 
@@ -112,8 +109,30 @@ subject.o : $(USER_DIR)/logic/subject.cc $(USER_DIR)/logic/subject.h
 abstract_dao.o : $(USER_DIR)/dao/abstract_dao.cc $(USER_DIR)/dao/abstract_dao.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/dao/abstract_dao.cc $(INCLUDE_PATHS)
 
-$(PLUGIN) : basictypes.o config.o data_engine.o strade_share_engine.o strade_share_db.o strade_basic_info.o mysql_engine.o\
-	observer.o subject.o abstract_dao.o\
+user_engine.o : ./$(USER_DIR)/logic/user_engine.cc ./$(USER_DIR)/logic/user_engine.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(USER_DIR)/logic/user_engine.cc $(INCLUDE_PATHS)
+
+user_info.o : ./$(USER_DIR)/logic/user_info.cc ./$(USER_DIR)/logic/user_info.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(USER_DIR)/logic/user_info.cc $(INCLUDE_PATHS)
+
+stock_group.o : ./$(USER_DIR)/logic/stock_group.cc ./$(USER_DIR)/logic/stock_group.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(USER_DIR)/logic/stock_group.cc $(INCLUDE_PATHS)
+
+stock_position.o : ./$(USER_DIR)/logic/stock_position.cc ./$(USER_DIR)/logic/stock_position.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(USER_DIR)/logic/stock_position.cc $(INCLUDE_PATHS)
+
+order_info.o : ./$(USER_DIR)/logic/order_info.cc ./$(USER_DIR)/logic/order_info.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(USER_DIR)/logic/order_info.cc $(INCLUDE_PATHS)
+	
+stock_util.o : ./$(USER_DIR)/logic/stock_util.cc ./$(USER_DIR)/logic/stock_util.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(USER_DIR)/logic/stock_util.cc $(INCLUDE_PATHS)
+
+message.o : ./$(USER_DIR)/logic/message.cc ./$(USER_DIR)/logic/message.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(USER_DIR)/logic/message.cc $(INCLUDE_PATHS)
+	
+$(PLUGIN) : basictypes.o config.o strade_share_engine.o strade_share_db.o strade_basic_info.o mysql_engine.o\
+	observer.o subject.o abstract_dao.o user_engine.o user_info.o stock_group.o stock_position.o order_info.o \
+	stock_util.o message.o\
 	$(CUSTOM_THIRD_PATH)/dmg_fp/lib/dmg_fp.a $(LIB_DIR)/base/lib/mybase.a $(LIB_DIR)/third_party/lib/libhiredis.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS)  -lpthread -lexpat -lrt -ldl -lmysqlclient \
 	$^  -o $@ -lexpat -lmysqlclient

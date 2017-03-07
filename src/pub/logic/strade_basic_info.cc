@@ -7,6 +7,7 @@
 
 namespace strade_logic {
 
+/*
 StockRealInfo::StockRealInfo() {
   data_ = new Data();
 }
@@ -37,6 +38,7 @@ StockRealInfo::~StockRealInfo() {
     data_->Release();
   }
 }
+*/
 
 StockHistInfo::StockHistInfo() {
   data_ = new Data();
@@ -77,7 +79,7 @@ void StockHistInfo::Deserialize() {
   GetReal(data_->high_);
   GetReal(3, data_->close_);
   GetReal(4, data_->low_);
-  GetReal(5, qfq_close);
+  GetReal(5, data_->volume_);
 
   if (qfq_close > 1) {
     data_->qfq_close_ = qfq_close;
@@ -128,8 +130,9 @@ void StockTotalInfo::Deserialize() {
   GetString(0, data_->code_);
   GetString(1, data_->name_);
   GetReal(2, data_->outstanding_);
-  GetReal(3, data_->bvps_);
-  GetReal(4, data_->pb_);
+  GetReal(data_->totalAssets_);
+  GetReal(data_->bvps_);
+  GetReal(data_->pb_);
   data_->market_value_ = data_->outstanding_ * data_->bvps_ * data_->pb_;
 }
 
@@ -217,6 +220,16 @@ bool StockTotalInfo::GetCurrRealMarketInfo(StockRealInfo& stock_real_info) {
       data_->stock_real_map_.rbegin());
   stock_real_info = iter->second;
   return true;
+}
+
+bool StockTotalInfo::GetStockYestodayStockHist(
+    StockHistInfo& stock_hist_info) {
+  STOCK_HIST_MAP::reverse_iterator riter(data_->stock_hist_map_.rbegin());
+  if (riter != data_->stock_hist_map_.rend()) {
+    stock_hist_info = riter->second;
+    return true;
+  }
+  return false;
 }
 
 } /* namespace strade_logic */

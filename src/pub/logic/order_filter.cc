@@ -6,6 +6,13 @@
 
 namespace strade_user {
 
+bool OrderFilter::filter(const OrderInfo& order) {
+  if (0 == group_id_
+      || order.group_id() == group_id_)
+    return false;
+  return true;
+}
+
 bool OrderOperationFilter::filter(const OrderInfo& order) {
   if (order.operation() == op_) {
     return false;
@@ -31,6 +38,14 @@ bool OrderCreateTimeFilter::filter(const OrderInfo& order) {
 bool OrderDealTimeFilter::filter(const OrderInfo& order) {
   if (order.deal_time() >= begin_time_
       && order.deal_time() <= end_time_) {
+    return false;
+  }
+  return true;
+}
+
+bool OrderProfitFilter::filter(const OrderInfo& order) {
+  if (order.profit() >= min_
+      && order.profit() <= max_) {
     return false;
   }
   return true;

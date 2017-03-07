@@ -15,7 +15,10 @@ class Observer {
   Observer();
   virtual ~Observer();
   virtual void Init();
+  bool stale() const { return stale_; }
   virtual void Update(int opcode) = 0;
+ protected:
+  bool stale_;
 };
 
 } /* namespace strade_logic */

@@ -15,15 +15,15 @@ LIB_DIR_O = ../../../lib
 PUB_DIR = ../../pub
 SO_DIR = ../../bin/plugins
 
-THIRD_PATH = $(LIB_DIR)/mylib/public
+THIRD_PATH = $(LIB_DIR)/public
 
-CUSTOM_THIRD_PATH = $(LIB_DIR)/mylib/third_party
+CUSTOM_THIRD_PATH = $(LIB_DIR)/third_party
 
 LINK_PATHS = -L./ -L/usr/local/libmemcached-1.0.7/lib/ -L/usr/lib64/mysql -L$(CUSTOM_THIRD_PATH)/librdkafka -L$(CUSTOM_THIRD_PATH)/hiredis
 
 # Flags passed to the preprocessor.
 CPPFLAGS += -isystem -shared -fPIC -D_DEBUG -DUSR_LOG_MSG -D_REENTRANT -D_GNU_SOURCE \
-			-DUSR_LOG_ERROR  -DNET_WORK -DBRY_PTL -DHEAD_SHORT
+			-DUSR_LOG_ERROR  -DNET_WORK -DBRY_PTL -DHEAD_SHORT -DDEBUG_TEST
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g  -Wextra -pthread -shared -fPIC
@@ -34,15 +34,16 @@ PLUGIN = $(SO_DIR)/user/user.so
 
 INCLUDE_PATHS = -I/usr/local/libmemcached-1.0.7/include \
 				-I$(LIB_DIR)/BasicCore\
-				-I$(LIB_DIR)/mylib/public\
+				-I$(LIB_DIR)/public\
 				-I$(PUB_DIR)\
 				-I/usr/local/include\
 				-I/usr/include/mysql\
 				-I$(CUSTOM_THIRD_PATH)/hiredis\
 				-I$(CUSTOM_THIRD_PATH)/librdkafka/src\
 				-I$(CUSTOM_THIRD_PATH)\
-				-I$(LIB_DIR)/mylib/base\
-                -I$(LIB_DIR)/mylib\
+				-I$(LIB_DIR)/base\
+                -I$(LIB_DIR)/\
+                -I../\
 
 # House-keeping build targets.
 
@@ -84,12 +85,47 @@ user_init.o : ./user_init.cc ./user_init.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./user_init.cc $(INCLUDE_PATHS)
 
 user_logic.o : ./user_logic.cc ./user_logic.h
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./user_logic.cc $(INCLUDE_PATHS)
+	$(CXX) $(CXXFLAGS) -c ./user_logic.cc $(INCLUDE_PATHS) $(CPPFLAGS) 
 
 message.o : ./$(PUB_DIR)/logic/message.cc ./$(PUB_DIR)/logic/message.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(PUB_DIR)/logic/message.cc $(INCLUDE_PATHS)
 
-$(PLUGIN) : user_init.o user_logic.o message.o	\
-	$(LIB_DIR)/mylib/base/lib/mybase.a $(CUSTOM_THIRD_PATH)/librdkafka/librdkafka.a $(LIB_DIR)/mylib/base/lib/libhiredis.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS) -lexpat -lrt -lpthread -liconv -ldl -lcurl -lsasl2 -lmysqlclient -lmemcached -lmemcachedutil  \
+logic_unit.o : ./$(PUB_DIR)/logic/logic_unit.cc ./$(PUB_DIR)/logic/logic_unit.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(PUB_DIR)/logic/logic_unit.cc $(INCLUDE_PATHS)
+
+stock_group.o : ./$(PUB_DIR)/logic/stock_group.cc ./$(PUB_DIR)/logic/stock_group.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(PUB_DIR)/logic/stock_group.cc $(INCLUDE_PATHS)
+
+user_engine.o : ./$(PUB_DIR)/logic/user_engine.cc ./$(PUB_DIR)/logic/user_engine.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(PUB_DIR)/logic/user_engine.cc $(INCLUDE_PATHS)
+
+order_filter.o : ./$(PUB_DIR)/logic/order_filter.cc ./$(PUB_DIR)/logic/order_filter.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(PUB_DIR)/logic/order_filter.cc $(INCLUDE_PATHS)
+	
+order_info.o : ./$(PUB_DIR)/logic/order_info.cc ./$(PUB_DIR)/logic/order_info.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(PUB_DIR)/logic/order_info.cc $(INCLUDE_PATHS)
+
+stock_position.o : ./$(PUB_DIR)/logic/stock_position.cc ./$(PUB_DIR)/logic/stock_position.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(PUB_DIR)/logic/stock_position.cc $(INCLUDE_PATHS)
+
+stock_util.o : ./$(PUB_DIR)/logic/stock_util.cc ./$(PUB_DIR)/logic/stock_util.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(PUB_DIR)/logic/stock_util.cc $(INCLUDE_PATHS)
+
+user_info.o : ./$(PUB_DIR)/logic/user_info.cc ./$(PUB_DIR)/logic/user_info.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(PUB_DIR)/logic/user_info.cc $(INCLUDE_PATHS)
+
+abstract_dao.o : ./$(PUB_DIR)/dao/abstract_dao.cc ./$(PUB_DIR)/dao/abstract_dao.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(PUB_DIR)/dao/abstract_dao.cc $(INCLUDE_PATHS)
+
+strade_basic_info.o : ./$(PUB_DIR)/logic/strade_basic_info.cc ./$(PUB_DIR)/logic/strade_basic_info.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./$(PUB_DIR)/logic/strade_basic_info.cc $(INCLUDE_PATHS)
+
+observer.o : $(PUB_DIR)/logic/observer.cc $(PUB_DIR)/logic/observer.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(PUB_DIR)/logic/observer.cc $(INCLUDE_PATHS)
+	
+$(PLUGIN) : user_init.o user_logic.o message.o	logic_unit.o stock_group.o\
+			user_engine.o stock_util.o order_filter.o user_info.o abstract_dao.o\
+			strade_basic_info.o order_info.o observer.o stock_position.o\
+			$(LIB_DIR)/base/lib/mybase.a 
+			$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS) -lexpat -lrt -lpthread -liconv -ldl -lcurl -lsasl2 -lmysqlclient -lmemcached -lmemcachedutil  \
 	$^ -o $@

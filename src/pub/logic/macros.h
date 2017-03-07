@@ -30,4 +30,19 @@
     data_->Release();                         \
   }
 
+#define DISALLOW_COPY_AND_ASSIGN(TypeName) \
+  TypeName(const TypeName&);               \
+  void operator=(const TypeName&)
+
+// 过户费
+#define IS_SH_CODE(code)  ('6' == code[0])
+#define TRANSFER_FEE(num) ((int(num)+999)/1000)
+
+// 佣金
+#define COMMISSION_RATE  0.003
+#define ROUND_COMMISSION(commision) ((((int)((double)(commision) + 4.999))/5)*5)
+
+// 印花税
+#define STAMP_DUTY_RATE 0.001
+
 #endif /* SRC_PUB_LOGIC_MACROS_H_ */
