@@ -18,6 +18,9 @@ using base_logic::DictionaryValue;
 
 namespace strade_user {
 
+class ResHead;
+class Status;
+
 class UserLogic {
  public:
   UserLogic();
@@ -53,17 +56,29 @@ class UserLogic {
  private:
   DictionaryValue* HttpDeserialize(const char* msg, int len);
 
-  void OnCreateGroup(DictionaryValue& dict);
-  void OnAddStock(DictionaryValue& dict);
-  void OnDelStock(DictionaryValue& dict);
-  void OnQueryGroup(DictionaryValue& dict);
-  void OnQueryStock(DictionaryValue& dict);
-  void OnQueryHoldingStock(DictionaryValue& dict);
-  void OnQueryTodayOrder(DictionaryValue& dict);
-  void OnQueryTodayFinishedOrder(DictionaryValue& dict);
-  void OnQueryHistoryFinishedOrder(DictionaryValue& dict);
-  void OnQueryStatement(DictionaryValue& dict);
-  void OnSubmitOrder(DictionaryValue& dict);
+  void OnCreateGroup(int socket, DictionaryValue& dict);
+  void OnAddStock(int socket, DictionaryValue& dict);
+  void OnDelStock(int socket, DictionaryValue& dict);
+  void OnQueryGroup(int socket, DictionaryValue& dict);
+  void OnQueryStock(int socket, DictionaryValue& dict);
+  void OnQueryGroupHoldingStock(int socket, DictionaryValue& dict);
+  void OnQueryHoldingStock(int socket, DictionaryValue& dict);
+  void OnQueryTodayOrder(int socket, DictionaryValue& dict);
+  void OnQueryTodayFinishedOrder(int socket, DictionaryValue& dict);
+  void OnQueryHistoryFinishedOrder(int socket, DictionaryValue& dict);
+  void OnQueryStatement(int socket, DictionaryValue& dict);
+  void OnSubmitOrder(int socket, DictionaryValue& dict);
+  void OnAvailableStockCount(int socket, DictionaryValue& dict);
+  void OnCancelOrder(int socket, DictionaryValue& dict);
+  void OnProfitAndLossOrderNum(int socket, DictionaryValue& dict);
+  void OnModifyInitCapital(int socket, DictionaryValue& dict);
+
+  void ProcessClose();
+
+  bool SendResponse(int socket, Status& status);
+  bool SendResponse(int socket, ResHead& msg);
+ private:
+  void OnSubmitMultiOrder(int socket, DictionaryValue& dict);
 };
 
 } /* namespace strade_user */

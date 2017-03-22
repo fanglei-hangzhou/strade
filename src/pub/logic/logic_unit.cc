@@ -45,17 +45,4 @@ void LogicUnit::SendMessageBySize(const int socket, std::string& json){
   base_logic::LogicComm::SendFull(socket, json.c_str(), json.length());
 }
 
-void LogicUnit::CreateToken(const int64 uid,std::string& token){
-	std::stringstream os;
-	os<<uid;
-	//create token
-	int32 random_num = base::SysRadom::GetInstance()->GetRandomID();
-	//md5
-	token="miglab";
-	std::string key;
-	os<<random_num;
-	base::MD5Sum md5(os.str());
-	token = md5.GetHash();
-}
-
 }

@@ -13,10 +13,16 @@
 #include "logic/observer.h"
 #include "logic/subject.h"
 #include "logic/comm_head.h"
+#include "logic/user_info.h"
+#include "logic/user_engine.h"
 
 #include <vector>
 
 namespace strade_share {
+
+using strade_user::UserId;
+using strade_user::UserInfo;
+using strade_user::UserEngine;
 
 // 所有股票数据 key: 股票代码
 typedef std::map<std::string, strade_logic::StockTotalInfo> STOCKS_MAP;
@@ -40,6 +46,7 @@ class SSEngine {
 
   // 更新实时行情数据
   virtual void UpdateStockRealMarketData(
+      time_t market_time,
       REAL_MARKET_DATA_VEC& stocks_market_data) = 0;
 
   // 更新股票当天历史数据
@@ -90,20 +97,40 @@ class SSEngine {
   template<typename T>
   bool ReadData(const std::string& sql,
                 std::vector<T>& result) {
-    return false;
+    return strade_share_db_->ReadData<T>(sql, result);
   }
 
   // 获取mysql 结果集， 用于自定义 MYSQL_ROW 的转化
   virtual bool ReadDataRows(
-      const std::string& sql, std::vector<MYSQL_ROW>& rows_vec) = 0;
+      int column_num, const std::string& sql, MYSQL_ROWS_VEC& rows_vec) = 0;
 
   // 更新数据
   virtual bool WriteData(const std::string& sql) = 0;
 
   // 执行存储过程
-  virtual bool ExcuteStorage(
-      const std::string& sql, std::vector<MYSQL_ROW>& rows_vec) = 0;
+  virtual bool ExcuteStorage(int column_num, const std::string& sql, MYSQL_ROWS_VEC& rows_vec) = 0;
 
+  // 获取用户对象'
+  virtual UserInfo* GetUser(UserId id) = 0;
+
+  // 获取所有用户
+  virtual std::map<UserId, UserInfo> GetUserMap() = 0;
+
+  // 添加异步任务, type 表示读，写， 用于用不同的连接
+  virtual bool AddMysqlAsyncJob(int column_num,
+                                const std::string& sql,
+                                MysqlCallback callback,
+                                base_logic::MYSQL_JOB_TYPE type,
+                                void* param = NULL) = 0;
+
+  // 盘后清算
+  virtual bool OnCloseMarket() = 0;
+
+  // 获取当前的市场时间
+  virtual time_t market_time() const = 0;
+
+ protected:
+  StradeShareDB* strade_share_db_;
 };
 
 struct StradeShareCache {
@@ -125,6 +152,7 @@ class SSEngineImpl : public SSEngine, public strade_logic::Subject {
   void LoadAllStockBasicInfo();
 
   virtual void UpdateStockRealMarketData(
+      time_t market_time,
       REAL_MARKET_DATA_VEC& stocks_market_data);
 
   virtual bool UpdateStockHistInfoByDate(
@@ -171,22 +199,35 @@ class SSEngineImpl : public SSEngine, public strade_logic::Subject {
   bool AddStockTotalInfoBlock(
       const strade_logic::StockTotalInfo& stock_total_info);
 
-  template<typename T>
-  bool ReadData(const std::string& sql,
-                std::vector<T>& result) {
-    base_logic::WLockGd lk(lock_);
-    return mysql_engine_->ReadData<T>(sql, result);
-  }
-
-  virtual bool ReadDataRows(
-      const std::string& sql, std::vector<MYSQL_ROW>& rows_vec);
+  virtual bool ReadDataRows(int column_num, const std::string& sql, MYSQL_ROWS_VEC& rows_vec);
 
   virtual bool WriteData(const std::string& sql);
 
-  virtual bool ExcuteStorage(const std::string& sql, std::vector<MYSQL_ROW>& rows_vec);
+  virtual bool ExcuteStorage(int column_num, const std::string& sql, MYSQL_ROWS_VEC& rows_vec);
+
+  virtual UserInfo* GetUser(UserId id) {
+    return user_engine_->GetUser(id);
+  }
+
+  virtual std::map<UserId, UserInfo> GetUserMap() {
+    return user_engine_->GetUserMap();
+  };
+
+  virtual bool AddMysqlAsyncJob(int column_num,
+                                const std::string& sql,
+                                MysqlCallback callback,
+                                base_logic::MYSQL_JOB_TYPE type,
+                                void* param = NULL);
+
+  // 盘后清算
+  virtual bool OnCloseMarket();
+
+  virtual time_t market_time() const {
+    return market_time_;
+  }
 
  private:
-  bool GetStockTotalNonBlock(const std::string stock_code,
+  bool GetStockTotalNonBlock(const std::string& stock_code,
                              strade_logic::StockTotalInfo& stock_total_info) {
     STOCKS_MAP::iterator iter(share_cache_.stocks_map_.find(stock_code));
     if (iter != share_cache_.stocks_map_.end()) {
@@ -199,10 +240,13 @@ class SSEngineImpl : public SSEngine, public strade_logic::Subject {
   bool InitParam();
 
  private:
+  time_t market_time_;
   threadrw_t* lock_;
   StradeShareCache share_cache_;
-  StradeShareDB* mysql_engine_;
+
+  UserEngine* user_engine_;
   static SSEngineImpl* instance_;
+  static pthread_mutex_t mutex_;
 };
 
 } /* namespace strade_share */

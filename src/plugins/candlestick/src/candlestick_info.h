@@ -25,6 +25,7 @@ struct StockDate {
   int month;
   int day;
   int week_index;
+  int week_day;
 };
 
 class StockDealInfo {
@@ -36,12 +37,16 @@ class StockDealInfo {
     return type_;
   }
   void set_date(std::string date) { date_ = date;}
-  void set_amount(long amount) {amount_ = amount;}
+  void set_early_date(std::string date) { early_date_ = date;}
+  void set_vol(long vol) {vol_ = vol;}
   std::string get_date() const {return date_;}
-  long get_amount() const {return amount_;}
+  long get_vol() const {return vol_;}
+  bool LaterDayData(const std::string &date);
+  bool EarlyDayData(const std::string &date);
  protected:
-  long amount_;
+  long vol_;
   std::string date_;
+  std::string early_date_;
   HistoryDataType type_;
 };
 class SingleStockInfo : public StockDealInfo{

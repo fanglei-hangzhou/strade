@@ -67,6 +67,7 @@ class SendCandleStickHistoryProtocol {
       info_value->SetReal(L"low", it->get_low_price());
       info_value->SetReal(L"open", it->get_open_price());
       info_value->SetReal(L"close", it->get_close_price());
+      info_value->SetReal(L"vol", it->get_vol());
       list->Append((base_logic::Value*) (info_value));
       it++;
     }
@@ -82,6 +83,16 @@ class SendCandleStickHistoryProtocol {
     if (!r)
       return "";
     return json;
+  }
+
+  void SetErrorState(int status, std::string error) {
+    SetCommonInfo(status);
+    result_->SetString(L"error", error);
+  }
+
+  void SetCommonInfo(int status) {
+    result_->SetInteger(L"status", status);
+    result_->SetBigInteger(L"timestamp", time(NULL));
   }
 
   void set_history_info(const std::list<SingleStockInfo> &stock_history_info) {

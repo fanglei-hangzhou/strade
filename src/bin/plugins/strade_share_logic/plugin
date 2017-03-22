@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<plugin id="stradeshare_logic"
+	name="stradeshare_logic"
+	version="1.0.0"
+	provider-name="harvey">
+</plugin>

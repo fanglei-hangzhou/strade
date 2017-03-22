@@ -16,20 +16,20 @@ class StockHistoryInfo {
   StockHistoryInfo() {
   }
   StockHistoryInfo(std::string date, double high, double low, double open,
-                   double close, int amount) {
+                   double close, int vol) {
     date_ = date;
     high_ = high;
     low_ = low;
     close_ = close;
     open_ = open;
-    amount_ = amount;
+    vol_ = vol;
   }
   std::string date_;
   double high_;
   double low_;
   double close_;
   double open_;
-  int amount_;
+  int vol_;
 };
 
 typedef std::map<std::string, StockHistoryInfo> STOCK_HISTORY_MAP;
@@ -37,7 +37,7 @@ typedef std::map<std::string, StockHistoryInfo> STOCK_HISTORY_MAP;
 class StockCandleStickData {
  public:
   virtual ~StockCandleStickData();
-  bool ParseDate(std::string date, StockDate *stock_date);
+  static bool ParseDate(std::string date, StockDate *stock_date);
   void GetStockDealInfo(StockDealInfo *deal, const StockHistoryInfo &info);
 };
 }  // namespace candlestick

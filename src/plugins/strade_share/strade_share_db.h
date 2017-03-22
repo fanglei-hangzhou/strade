@@ -29,15 +29,23 @@ class StradeShareDB {
     return mysql_engine_->ReadData<T>(sql, result);
   }
 
-  bool ReadDataRows(const std::string& sql,
-                    std::vector<MYSQL_ROW>& rows_vec);
+  bool ReadDataRows(int column_num, const std::string& sql, MYSQL_ROWS_VEC& rows_vec) {
+    return mysql_engine_->ReadDataRows(column_num, sql, rows_vec);
+  }
 
   bool WriteData(const std::string& sql);
 
   // 执行存储过程
-  bool ExcuteStorage(const std::string& sql,
-                     std::vector<MYSQL_ROW>& rows_vec) {
-    return mysql_engine_->ExcuteStorage(sql, rows_vec);
+  bool ExcuteStorage(int column_num, const std::string& sql, MYSQL_ROWS_VEC& rows_vec) {
+    return mysql_engine_->ExcuteStorage(column_num, sql, rows_vec);
+  }
+
+  bool AddAsyncMysqlJob(int column_num,
+                        const std::string& sql,
+                        MysqlCallback callback,
+                        base_logic::MYSQL_JOB_TYPE type,
+                        void* param = NULL) {
+    return mysql_engine_->AddAsyncMysqlJob(column_num, sql, callback, type, param);
   }
 
  private:
